@@ -1,0 +1,301 @@
+Apt-get install wget unzip
+Wget hashicorps короче terraform
+Sudo Unzip terraform -d /usr/bin/share
+Sudo apt-get install -y python3-module-openstackclient python3-module-pip
+Openstack –version
+Pip3 install python-octaviaclient
+Pip3 install cinderclient
+Pip3 install novaclient
+Nano ~/.terraformrc
+Provider_installation {
+        Network_mirror {
+	    url = https://terraform-mirror.mcs.mail.ru
+	    include = [“registry.terraform.io/*/*”]
+        }
+        Direct {
+                Exclude = [“registry.terraform.io/*/*”]
+        }
+}
+Mkdir ~/bin
+Cd ~/bin
+
+Nano cloud.conf
+Export TF_VAR_OS_AUTH_URL=https://айпистенда:5000/v3
+Export TF_VAR_OS_PROJECT_NAME=ИМЯ ПРОЕКТА СПРАВА СВЕРХУ
+Export TF_VAR_OS_USERNAME=имя пользователя
+Export TF_VAR_OS_PASSWORD=пароль
+
+Export OS_AUTH_URL=https://айпистенда:5000/v3
+Export OS_IDENTITY_API_VERSION=3
+Export OS_AUTH_TYPE=password
+Export OS_PROJECT_DOMAIN_NAME= ДОМЕН ПРОЕКТА 
+Export OS_USER_DOMAIN_NAME=
+Export OS_PROJECT_NAME= ИМЯ ПРОЕКТА СПРАВА СВЕРХУ
+Export OS_USERNAME=
+Export OS_PASSWORD=…
+ Source cloud.conf
+Openstack –insecure server list
+
+Nano provider.tf
+Terraform {
+     Required_provider {
+          Openstack = {
+                Source = “terraform-provider-openstack/openstack”
+	  Version = “2.1.0”
+           }
+       }
+}
+
+Provider “openstack” 
+     Auth_url       = var.OS_AUTH_URL
+     Tenant_name = var.OS_PROJECT_NAME
+      User_name    = var.OS_USERNAME
+      Password        = var.OS_PASSWORD
+      Insecure           = true
+}
+
+Nano variables.tf
+ Variable “OS_AUTH_URL” {
+        Type = string
+        Sensitive = true
+}
+Variable “OS_PROJECT_NAME” {
+        Type = string
+         Sensitive = true
+}
+Variable “OS_USERNAME” {
+        Type = string
+         Sensitive = true
+}
+Variable “OS_PASSWORD” {
+        Type = string
+         Sensitive = true
+}
+Terraform init
+
+Network.tf
+Resource “openstack_networking_router_v2” “router” {
+	Name = “cloud”
+}
+Resource “openstack_networking_network_v2” “network” {
+	Name = “INTERNET”
+	Admin_state_up = “true”
+}
+Resource “openstack_networking_subnet_v2” “subnet” {
+	Name = “INTERNET”
+	Network_id = openstack_networking_network_v2.network.id
+	Cidr = “192.168.200.0/24”
+	Ip_version = 4
+	Gateway_ip = “192.168.200.1”
+	Dns_nameservers = [ “77.88.8.8” ]
+	Enable_dhcp = true
+
+	Allocation_pool {
+		Start = “192.168.200.1”
+		End   = “192.168.200.2”
+            }
+}
+Resource “openstack_networking_router_interface_v2” “router_interface” {
+	Router_id = data.openstack_networking_router_v2.router.id
+	Subnet_id = openstack_networking_subnet_v2.subnet.id
+}
+Terraform validate
+Terraform plan
+Terraform apply
+Yes
+
+Resource “openstack_networking_port_v2” “port_webadm” {
+	Name = “webadm”
+	Network_id = openstack_networking_network_v2.network.id
+	Fixed_ip {
+		Sudnet_id = openstack_networking_subnet_v2.subnet.id
+		Ip_address = “192.168.200.21”
+	}
+}
+
+Resource “openstack_networking_port_v2” “port-web1” {
+	Name=”web1”
+	Network_id = openstack_networking_network_v2.network.id
+	
+	Fixed_ip {
+		Subnet = openstack_networking_subnet_v2.subnet.id
+		Ip_address = “192.168.200.22”
+	}
+}
+Resource “openstack_networking_port_v2” “port_web2”
+	Name = web2
+	Network_id = openstack_networking_network_v2.network.id
+
+	Fixed_ip {
+		Subnet_id = openstack_networking_subnet_v2.subnet.id
+		Ip_address = “192.168.200.23”
+	}
+}
+
+Resource “openstack_networking_port_v2” “port_loadbalancer” {
+	Name = “loadbalancer”
+	Network_id = openstack_networking_network_v2.network.id
+
+	Fixed_ip {
+		Subnet_id = openstack_networking_subnet_v2.subnet.id
+		Ip_address = “192.168.200.24”
+	}
+}
+Terraform validate
+Plan
+ Apply
+
+Resource “openstack_networking_floatingip_v2” “floatingip_loadbalancer” {
+	Pool = “public”
+}
+Resource “openstack_networking_floatingip_v2” “floatingip_web1” {
+	Pool = “public”
+}
+
+Resource “openstack_networking_floatingip_v2” “floatingip_web2” {
+	Pool = “public”
+}
+Resource “openstack_networking_floatingip_v2” “floatingip_webadm” {
+	Pool = “webadm”
+}
+Resource “openstack_networking_floatingip_associate_v2” “association_webadm” {
+	Port_id = openstack_networking_port_v2.port_webadm.id
+	Floating_ip = openstack_networking_floating_v2.floatingip_webadm.address
+Resource “openstack_networking_floatingip_associate_v2 “ “association_web1” {
+	Port_id = openstack_networking_port_v2.port_web1.id
+Floating_ip = openstack_networking_floatingip_v2.floating_web1.address
+}
+Resource “openstack_networking_floatingip_associate_v2” “association_web2” {
+	Port_id = openstack_networking_port_v2.port_web2.id
+	Floating_ip = openstack_networking_floatingip_v2.floating_web2.address
+}
+Resource “openstack_networking_floatingip_associate_v2” “association_loadbalancer” {
+	Port_id = openstack_networking_port_v2.port_loadbalancer.id
+	Floating_ip = openstack_networking_floatingip_v2.floating_ loadbalancer.address
+}
+
+Nano security.tf
+
+Resource “openstack_networking_secgroup_v2” “secgroup_1”
+	Name = “ICMP”
+	Description = “ICMP”
+}
+Resource “openstack_networking_secgroup_v2” “secgroup_2” {
+	Name = “SSH”
+	Description = “SSH”
+}
+
+Resource “openstack_networking_secgroup_v2” “secgroup_3” {
+	Name = “WEB”
+	Description = “WEB”
+Resource “openstack_networking_secgroup_v2” “secgroup_4” {
+	Name = “VPN”
+	Description = “WIREGUARD”
+Resource “openstack_networking_secgroup_rule_v2” “secgroup_rule_icmp” {
+	Direction	= “ingress”
+	Ethertype	= “IPv4”
+	Protocol	= “icmp”
+	Remote_ip_prefix = “0.0.0.0/0”
+	Secgroup_id = openstack_networking_secgroup_v2.secgroup_1.id
+}
+Resource “openstack_networking_secgroup_rule_v2” “secgroup_rule_ssh” {
+	Direction = “ingress”
+	Ethertype = “IPv4”
+	Protocol = “tcp”
+	Port_range_min = 22
+	Port_range_max = 22
+	Remote_ip_prefix = “0.0.0.0/0”
+	Secgroup_id = openstack_networking_secgroup_v2.secgroup_2.id
+}
+
+Resource “openstack_networking_secgroup_rule_v2” “secgroup_rule_http” {
+	Direction = “ingress”
+	Ethertype = “IPv4”
+	Protocol = “tcp”
+	Port_range_min = 80
+	Port_range_max = 80
+	Remote_ip_prefix = “0.0.0.0/0”
+	Secgroup_id = openstack_networking_secgroup_v2.secgroup_3.id
+}
+Resource “openstack_networking_secgroup_rule_v2” “secgroup_rule_https” {
+	Direction = “ingress”
+	Ethertype = “IPv4”
+	Protocol = “tcp”
+	Port_range_min = 443
+	Port_range_max = 443
+	Remote_ip_prefix = “0.0.0.0/0”
+	Secgroup_id = openstack_networking_secgroup_v2.secgroup_3.id
+}
+
+Resource “openstack_networking_secgroup_rule_v2” “secgroup_rule_vpn” {
+	Direction = “ingress”
+	Ethertype = “IPv4”
+	Protocol = “udp”
+	Port_range_min = 51820
+	Port_range_max = 51820
+	Remote_ip_prefix = “0.0.0.0/0”
+	Secgroup_id = openstack_networking_secgroup_v2.secgroup_4.id
+}
+
+Resource “openstack_networking_port_secgroup_associate_v2” “security_group_associate_wedadm” {
+	Port_id = openstack_networking_port_v2.port_webadm.id
+	Enforce = true
+	Security_group_ids = [
+		Openstack_networking_secgroup_v2.secgroup_1.id,
+		Openstack_networking_secgroup_v2.secgroup_2.id,
+		Openstack_networking_secgroup_v2.secgroup_4.id
+	[
+}
+Resource “openstack_networking_port_secgroup_associate_v2” “security_group_associate_web1” {
+	Port_id = openstack_networking_port_v2.port_web1.id
+	Enforce = true
+	Security_group_ids = [
+		Openstack_networking_secgroup_v2.secgroup_1.id,
+		Openstack_networking_secgroup_v2.secgroup_2.id,
+		Openstack_networking_secgroup_v2.secgroup_3.id,
+	]
+}
+Resource “openstack_networking_port_secgroup_associate_v2” “security_group_associate_web2” {
+	Port_id = openstack_networking_port_v2.port_web2.id
+	Enforce = true
+	Security_group_ids = [
+		Openstack_networking_secgroup_v2.secgroup_1.id,
+		Openstack_networking_secgroup_v2.secgroup_2.id,
+		Openstack_networking_secgroup_v2.secgroup_3.id,
+	]
+}
+}
+Resource “openstack_networking_port_secgroup_associate_v2” “security_group_associate_loadbalancer” {
+	Port_id = openstack_networking_port_v2.port_ loadbalancer.id
+	Enforce = true
+	Security_group_ids = [
+		Openstack_networking_secgroup_v2.secgroup_1.id,
+		Openstack_networking_secgroup_v2.secgroup_2.id,
+		Openstack_networking_secgroup_v2.secgroup_3.id,
+	]
+}
+Instance.tf
+Resource “openstack_compute_interface_attach_v2” “controlvm” {
+	Instance_ id = “айди из –insecure server list”
+	Network_id = 
+	Fixed_ip = “x.x.x.10”
+	Depends_on = [ openstack_networking_subnet_v2.subnet ]
+}
+ Resource “openstack_compute_instance_v2” “webadm” {
+	Name = “WebADM”
+	Flavor_id = var.flavor_id
+	Key_pair = var.key_pair
+	User_data =  file(“cloud-init.yml”)
+	Block_device {
+		Uuid = var.image_id
+		Source_type = “image”
+		Volume_size = 10
+		Boot_index = 0
+		Destination_type = “volume”
+		Delete_on_termination = true
+	}
+	Network {
+		Port = openstack_terraform_port_v2.port_webadm.id
+	}
+}
+
