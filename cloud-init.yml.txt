@@ -1,0 +1,13 @@
+#cloud-config
+chpasswd:
+  expire: false
+  users:
+  - {name: altlinux, password: P@ssw0rd, type: text}
+  ssh_pwauth: false
+
+users:
+  - name: altlinux
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: wheel
+    shell: /bin/bash
+    ssh_authorized_keys:
